@@ -15,11 +15,13 @@ BOOL APIENTRY DllMain ( [[maybe_unused]] HMODULE hModule,
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 
 static const wchar_t ClassNames[] ( L"Root|Watcher|Regex" );
-static AppCapabilities ApplicationCapabilities = AppCapabilitiesInvalid;
-static WCHAR_T* Names { nullptr };
+static AppCapabilities ApplicationCapabilities { AppCapabilitiesInvalid };
+static WCHAR_T* Names {};
 
 long GetClassObject ( const WCHAR_T* Name, IComponentBase** Interface ) {
-	if ( *Interface ) return 0;
+	if ( *Interface ) {
+		return 0;
+	}
 	auto name { Chars::WCHARToWide ( Name ) };
 	if ( name == L"Root" ) {
 		*Interface = new Root ();
@@ -32,7 +34,7 @@ long GetClassObject ( const WCHAR_T* Name, IComponentBase** Interface ) {
 	} else if ( name == L"Regex" ) {
 		*Interface = new Regex ();
 	}
-	return long ( *Interface );
+	return reinterpret_cast<long>(*Interface);
 }
 
 AppCapabilities SetPlatformCapabilities ( const AppCapabilities Capabilities ) {
@@ -41,7 +43,9 @@ AppCapabilities SetPlatformCapabilities ( const AppCapabilities Capabilities ) {
 }
 
 long DestroyObject ( IComponentBase** Interface ) {
-	if ( !*Interface ) return -1;
+	if ( !*Interface ) {
+		return -1;
+	}
 	delete *Interface;
 	*Interface = nullptr;
 	return 0;
