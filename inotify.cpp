@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
 
 namespace fs = std::filesystem;
 
@@ -108,21 +109,22 @@ namespace Inotify {
 				throw std::runtime_error ( errorStream.str () );
 			}
 		}
-		Watching.left.insert ( { descriptor, Path } );
+		savePath ( descriptor, Path );
+	}
+
+	void Inotify::savePath ( int Descriptor, const fs::path& Path ) {
+		Folders.insert ( { Descriptor, Path } );
+		Descriptors.insert ( { Path, Descriptor } );
 	}
 
 	[[maybe_unused]] [[maybe_unused]] void Inotify::ReleasePath ( const std::filesystem::path& File ) {
-		int result = inotify_rm_watch ( InotifyDescriptor, Watching.right.at ( File ) );
+		int result = inotify_rm_watch ( InotifyDescriptor, Descriptors.at ( File ) );
 		if ( result == -1 ) {
 			std::stringstream errorStream;
 			errorStream << "inotify_rm_watch failed with error: " << strerror ( errno )
 						<< ". Path:" << File.string ();
 			throw std::runtime_error ( errorStream.str () );
 		}
-	}
-
-	std::filesystem::path Inotify::descriptorToPath ( int Descriptor ) {
-		return Watching.left.at ( Descriptor );
 	}
 
 	void Inotify::Subscribe ( const std::vector<Action>& Events, const EventObserver& EventObserver ) {
@@ -187,15 +189,20 @@ namespace Inotify {
 			inotify_event* event = ( ( struct inotify_event* ) &buffer[ i ] );
 			i += EventSize + event->len;
 			if ( event->mask & IN_IGNORED ) {
-				Watching.left.erase ( event->wd );
+				deleteDescriptor ( event->wd );
 			} else {
-				auto path = descriptorToPath ( event->wd ) / std::string ( event->name );
+				auto path = Folders.at ( event->wd ) / std::string ( event->name );
 				if ( !path.empty () ) {
 					SystemEvent fsEvent ( event->mask, path, fs::is_directory ( path ) );
 					Events.push_back ( fsEvent );
 				}
 			}
 		}
+	}
+
+	void Inotify::deleteDescriptor ( int Descriptor ) {
+		Descriptors.erase ( Folders.at ( Descriptor ) );
+		Folders.erase ( Descriptor );
 	}
 
 	void Inotify::filterEvents ( std::vector<SystemEvent>& Events ) {

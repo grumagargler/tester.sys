@@ -4,7 +4,6 @@
 #include <cassert>
 #include <filesystem>
 #include <optional>
-#include <boost/bimap.hpp>
 #include <cerrno>
 #include <exception>
 #include <map>
@@ -19,6 +18,7 @@
 #include <chrono>
 #include <thread>
 #include <atomic>
+#include <functional>
 #define EventsLimit 1024
 #define EventSize ( sizeof ( inotify_event ) )
 
@@ -84,7 +84,8 @@ namespace Inotify {
 		std::map<Action, EventObserver> Observer;
 		uint32_t EventMask;
 		std::queue<SystemEvent> EventQueue;
-		boost::bimap<int, std::filesystem::path> Watching;
+		std::map<int, std::filesystem::path> Folders;
+		std::map<std::filesystem::path, int> Descriptors;
 		int InotifyDescriptor;
 		std::atomic<bool> Stopped;
 		int EpollDescriptor;
@@ -97,7 +98,6 @@ namespace Inotify {
 		const int PipeWriteIndex;
 
 		void waitForEvent ();
-		std::filesystem::path descriptorToPath ( int Descriptor );
 		ssize_t readEvents ();
 		void fetchEvents ( int Size, std::vector<SystemEvent>& Events );
 		void filterEvents ( std::vector<SystemEvent>& Events );
@@ -107,6 +107,8 @@ namespace Inotify {
 		void attachFolder ( const std::filesystem::path& Folder, const EventObserver* Handler );
 		std::optional<SystemEvent> getNext ();
 		static void checkPath ( const std::filesystem::path& Path );
+		void savePath ( int Descriptor, const std::filesystem::path& Path );
+		void deleteDescriptor ( int Descriptor );
 	};
 }
 #endif
