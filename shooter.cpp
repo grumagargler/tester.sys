@@ -21,6 +21,7 @@ Shooter::RawBuffer::~RawBuffer () {
 		free ( Buffer );
 	}
 }
+
 Shooter::RawBuffer& Shooter::RawBuffer::operator= ( Shooter::RawBuffer& Parent ) {
 	if ( this == &Parent ) {
 		return *this;
