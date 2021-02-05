@@ -117,7 +117,7 @@ namespace Inotify {
 		Descriptors.insert ( { Path, Descriptor } );
 	}
 
-	[[maybe_unused]] [[maybe_unused]] void Inotify::ReleasePath ( const std::filesystem::path& File ) {
+	[[maybe_unused]] void Inotify::ReleasePath ( const std::filesystem::path& File ) {
 		int result = inotify_rm_watch ( InotifyDescriptor, Descriptors.at ( File ) );
 		if ( result == -1 ) {
 			std::stringstream errorStream;
@@ -186,7 +186,7 @@ namespace Inotify {
 		decltype ( EventSize ) i { 0 };
 		auto buffer = EventBuffer.data ();
 		while ( i < Size ) {
-			inotify_event* event = ( ( struct inotify_event* ) &buffer[ i ] );
+			auto event = reinterpret_cast<inotify_event*>( &buffer[ i ] );
 			i += EventSize + event->len;
 			if ( event->mask & IN_IGNORED ) {
 				deleteDescriptor ( event->wd );
