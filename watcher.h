@@ -10,6 +10,9 @@
 
 class Watcher : public Extender {
 public:
+	Watcher ();
+	~Watcher () override;
+private:
 	class Observer {
 	public:
 #ifdef _WIN32
@@ -17,13 +20,8 @@ public:
 				16380 * 2 }; // https://qualapps.blogspot.ca/2010/05/understanding-readdirectorychangesw_19.html
 		FILE_NOTIFY_INFORMATION* info;
 #endif
-
 		Observer ( Watcher* Parent, const wchar_t* Folder, IAddInDefBase* Connector );
-#ifdef __linux__
-		void Start () const;
-#elif _WIN32
 		void Start ();
-#endif
 	private:
 		struct Actions {
 			static constexpr WCHAR_T Added[] = { '1', '\0' };
@@ -51,15 +49,11 @@ public:
 
 #ifdef __linux__
 		void observing () const;
-#elif _WIN32
-		void observing ();
-#endif
-
-#ifdef __linux__
 		void sendMessage ( const Inotify::Notification* Notification ) const;
 		static const WCHAR_T* actionToName ( const Inotify::Action& Event );
 		static bool hasEvent ( const Inotify::Action& Source, const Inotify::Action& Event );
 #elif _WIN32
+		void observing ();
 		void sendMessage ( DWORD Offset = 0 );
 		[[nodiscard]]
 		const wchar_t* actionToName () const;
@@ -73,12 +67,16 @@ public:
 #endif
 	std::thread* Thread;
 	bool Active;
+	bool Paused;
 
-	Watcher ();
-	~Watcher () override;
-	static void StartObserver ( Watcher* Parent, const std::wstring& Folder, IAddInDefBase* Connector );
-	void StopWatching ();
-	void StartWatching ( tVariant* Params );
-	void Watch ( tVariant* Params );
+	static void startObserver ( Watcher* Parent, const std::wstring& Folder, IAddInDefBase* Connector );
+	void stopWatching ();
+	void startWatching ( tVariant* Params );
+	void watch ( tVariant* Params );
+	bool pause ();
+	bool resume ();
+	bool checkActivity ();
+	void activate ();
+	void deactivate ();
 };
 #endif

@@ -8,18 +8,30 @@
 #endif
 #include "watcher.h"
 
-Watcher::Watcher () : Extender ( L"Watcher" ), Active ( false ), Thread ( nullptr ) {
-	methods.AddProcedure ( L"Start", L"Старт", 1, [ & ] ( tVariant* Params ) { Watch ( Params ); } );
-	methods.AddProcedure ( L"Stop", L"Стоп", 0, [ & ] ( tVariant* Params ) { StopWatching (); } );
+Watcher::Watcher () : Extender ( L"Watcher" ), Active ( false ), Paused ( false ), Thread ( nullptr ) {
+	methods.AddProcedure ( L"Start", L"Старт", 1, [ & ] ( tVariant* Params ) {
+		watch ( Params );
+		return true;
+	} );
+	methods.AddProcedure ( L"Pause", L"Пауза", 0, [ & ] ( tVariant* Params ) {
+		return pause ();
+	} );
+	methods.AddProcedure ( L"Resume", L"Продолжать", 0, [ & ] ( tVariant* Params ) {
+		return resume ();
+	} );
+	methods.AddProcedure ( L"Stop", L"Стоп", 0, [ & ] ( tVariant* Params ) {
+		stopWatching ();
+		return true;
+	} );
 }
 
 Watcher::~Watcher () {
-	StopWatching ();
+	stopWatching ();
 }
 
-void Watcher::StopWatching () {
+void Watcher::stopWatching () {
 	if ( Thread && Active ) {
-		Active = false;
+		deactivate ();
 #ifdef __linux__
 		Notifier.Stop ();
 #elif _WIN32
@@ -32,32 +44,26 @@ void Watcher::StopWatching () {
 	}
 }
 
-void Watcher::Watch ( tVariant* Params ) {
-	StopWatching ();
-	StartWatching ( Params );
+void Watcher::watch ( tVariant* Params ) {
+	stopWatching ();
+	startWatching ( Params );
 }
 
-void Watcher::StartWatching ( tVariant* Params ) {
+void Watcher::startWatching ( tVariant* Params ) {
 	std::wstring folder { Chars::WCHARToWide ( Params->pwstrVal ) };
-	Thread = new std::thread ( StartObserver, this, folder, baseConnector );
+	Thread = new std::thread ( startObserver, this, folder, baseConnector );
 }
 
-void Watcher::StartObserver ( Watcher* Parent, const std::wstring& Folder, IAddInDefBase* Connector ) {
+void Watcher::startObserver ( Watcher* Parent, const std::wstring& Folder, IAddInDefBase* Connector ) {
 	Observer resident { Parent, Folder.data (), Connector };
 	resident.Start ();
 }
 
 Watcher::Observer::Observer ( Watcher* Parent, const wchar_t* Folder, IAddInDefBase* Connector )
-		: Parent ( Parent ), Folder ( Folder ), Connector ( Connector ) {
-}
+		: Parent ( Parent ), Folder ( Folder ), Connector ( Connector ) {}
 
-#ifdef __linux__
-void Watcher::Observer::Start () const {
-	Parent->Active = true;
-	observing ();
-}
-#elif _WIN32
 void Watcher::Observer::Start () {
+#if _WIN32
 	Buffer.resize ( watcherBuffer );
 	auto folderID = CreateFileW ( Folder.c_str (), FILE_LIST_DIRECTORY,
 								  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -67,15 +73,18 @@ void Watcher::Observer::Start () {
 		return;
 	}
 	Parent->FolderID = folderID;
-	Parent->Active = true;
+#endif
+	Parent->activate ();
 	observing ();
 }
-#endif
 
 #ifdef __linux__
 void Watcher::Observer::observing () const {
 	using namespace Inotify;
 	EventObserver handler = [ & ] ( const Notification& notification ) {
+		if ( Parent->Paused ) {
+			return;
+		}
 		sendMessage ( &notification );
 	};
 	auto events = { Action::create,
@@ -115,7 +124,9 @@ void Watcher::Observer::observing () {
 				  | FILE_NOTIFY_CHANGE_LAST_WRITE;
 	while ( Parent->Active ) {
 		if ( ReadDirectoryChangesW ( id, data, size, true, filter, &returned, nullptr, nullptr ) ) {
-			sendMessage ();
+			if ( !Parent->Paused ) {
+				sendMessage ();
+			}
 		}
 	}
 }
@@ -166,6 +177,7 @@ const WCHAR_T* Watcher::Observer::actionToName ( const Inotify::Action& Event ) 
 		return Actions::WatcherDisconnected;
 	return nullptr;
 }
+
 #elif _WIN32
 const wchar_t* Watcher::Observer::actionToName () const {
 	auto Directory = std::filesystem::is_directory ( File );
@@ -184,3 +196,37 @@ const wchar_t* Watcher::Observer::actionToName () const {
 	return nullptr;
 }
 #endif
+
+bool Watcher::pause () {
+	if ( !checkActivity () ) {
+		return false;
+	}
+	Paused = true;
+	return true;
+}
+
+bool Watcher::checkActivity () {
+	if ( Active ) {
+		return true;
+	}
+	SetError<std::wstring> ( L"Watcher is not yet started" );
+	return false;
+}
+
+bool Watcher::resume () {
+	if ( !checkActivity () ) {
+		return false;
+	}
+	Paused = false;
+	return true;
+}
+
+void Watcher::activate () {
+	Active = true;
+	Paused = false;
+}
+
+void Watcher::deactivate () {
+	Active = false;
+	Paused = false;
+}
