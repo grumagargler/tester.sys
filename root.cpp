@@ -109,7 +109,7 @@ bool Root::maximize ( tVariant* Params ) {
 	Expander processor;
 #endif
 	try {
-		processor.Maximize ( title.data() );
+		processor.Maximize ( title.data () );
 	}
 	catch ( std::regex_error& error ) {
 		ShowError ( error.what () );
