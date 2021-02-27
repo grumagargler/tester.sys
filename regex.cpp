@@ -19,19 +19,26 @@ bool Regex::select ( tVariant* Params, tVariant* Result ) {
 	auto next = Params + 1;
 	std::wstring query = Chars::WCHARToWide ( next->pwstrVal, next->wstrLen );
 	std::wsmatch match;
+	using namespace JSON;
+	Array json;
+	std::wstring::const_iterator begin ( string.cbegin () );
 	try {
-		std::regex_search ( string, match, Init ( query ) );
+		auto pattern { Init ( query ) };
+		while ( regex_search ( begin, string.cend (), match, pattern ) ) {
+			auto record = json.Add<Object> ();
+			record->Add<String> ( L"Value" )->Set ( match.str ( 0 ) );
+			auto subMatches = record->Add<Array> ( L"Groups" );
+			for ( size_t i = 1; i < match.size (); ++i ) {
+				subMatches->Add<String> ()->Set ( match.str ( i ) );
+			}
+			begin = match.suffix ().first;
+		}
 	} catch ( const std::exception& e ) {
 		SetError ( e.what () );
 		return false;
 	} catch ( ... ) {
 		SetError ( "Unknown error occurred in std::regex_search" );
 		return false;
-	}
-	using namespace JSON;
-	Array json;
-	for ( size_t i = 0; i < match.size (); ++i ) {
-		json.Add<String> ()->Set ( match.str ( i ) );
 	}
 	std::wstring result;
 	json.Presentation ( &result );
