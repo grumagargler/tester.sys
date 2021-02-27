@@ -43,8 +43,8 @@ bool Root::shoot ( tVariant* Params, tVariant* Result ) {
 		return false;
 	}
 	catch ( ... ) {
-		ShowError ( "Method screenshot.Take caused an internal error" );
-		return false;
+		// There is no reason to notify client about internal stuff
+		return true;
 	}
 	if ( result != std::nullopt ) {
 		getPicture ( result.value (), Result );
