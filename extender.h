@@ -10,9 +10,9 @@
 
 class Extender : public IComponentBase {
 public:
-	typedef std::function<void ( tVariant* Params )> procedure;
-	typedef std::function<void ()> method;
-	typedef std::function<void ( tVariant* Params, tVariant* Result )> function;
+	typedef std::function<bool ( tVariant* Params )> procedure;
+	typedef std::function<bool ()> method;
+	typedef std::function<bool ( tVariant* Params, tVariant* Result )> function;
 
 	explicit Extender ( const std::wstring& Extension );
 	~Extender () override;
@@ -87,8 +87,7 @@ protected:
 
 		void AddProcedure ( const wchar_t* English, const wchar_t* Russian, int Parameters, procedure Handler );
 		void addMethod ( const wchar_t* English, const wchar_t* Russian, int Params, bool Function );
-		void AddFunction ( const wchar_t* English, const wchar_t* Russian, int Parameters,
-						   std::function<void ( _tVariant*, _tVariant* )> Handler );
+		void AddFunction ( const wchar_t* English, const wchar_t* Russian, int Parameters, function Handler );
 	};
 
 	WCHAR_T* ExtensionID;

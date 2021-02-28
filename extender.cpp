@@ -16,7 +16,7 @@ Extender::Extender ( const std::wstring& Extension )
 		version ( Result );
 		return true;
 	} );
-	methods.AddFunction ( L"Problem", L"Проблема", 1, [ & ] ( tVariant* Params, tVariant* Result ) {
+	methods.AddFunction ( L"Problem", L"Проблема", 0, [ & ] ( tVariant* Params, tVariant* Result ) {
 		getLastError ( Result );
 		return true;
 	} );
@@ -152,8 +152,7 @@ bool Extender::HasRetVal ( long Method ) {
 
 bool Extender::CallAsProc ( long Method, tVariant* Params, long Count ) {
 	if ( !checkParams ( Method, Count ) ) return false;
-	methods.Procedures[ Method ] ( Params );
-	return true;
+	return methods.Procedures[ Method ] ( Params );
 }
 
 bool Extender::checkParams ( long Method, long Count ) {
@@ -162,8 +161,7 @@ bool Extender::checkParams ( long Method, long Count ) {
 
 bool Extender::CallAsFunc ( long Method, tVariant* Result, tVariant* Params, long Count ) {
 	if ( !checkParams ( Method, Count ) ) return false;
-	methods.Functions[ Method ] ( Params, Result );
-	return true;
+	return methods.Functions[ Method ] ( Params, Result );
 }
 
 void Extender::SetLocale ( const WCHAR_T* Locale ) {
@@ -222,7 +220,7 @@ void Extender::methodsList::addMethod ( const wchar_t* English, const wchar_t* R
 }
 
 void Extender::methodsList::AddFunction ( const wchar_t* English, const wchar_t* Russian, int Params,
-										  std::function<void ( _tVariant*, _tVariant* )> Handler ) {
+										  function Handler ) {
 	addMethod ( English, Russian, Params, true );
 	Functions[ Count ] = std::move ( Handler );
 }
