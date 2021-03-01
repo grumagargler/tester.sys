@@ -11,7 +11,6 @@
 class Extender : public IComponentBase {
 public:
 	typedef std::function<bool ( tVariant* Params )> procedure;
-	typedef std::function<bool ()> method;
 	typedef std::function<bool ( tVariant* Params, tVariant* Result )> function;
 
 	explicit Extender ( const std::wstring& Extension );
