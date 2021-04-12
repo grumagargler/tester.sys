@@ -145,11 +145,11 @@ bool Root::minimize ( tVariant* Params ) {
 
 void Root::pause ( tVariant* Params ) {
 	if ( Params->vt == VTYPE_EMPTY ) return;
-	auto milliseconds { getNumber ( Params ) };
+	auto seconds { getNumber ( Params ) };
 #if __linux__
-	usleep ( milliseconds );
+	sleep ( seconds );
 #elif _WIN32
-	Sleep ( milliseconds );
+	Sleep ( 1000 * seconds );
 #endif
 }
 

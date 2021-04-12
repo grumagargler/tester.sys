@@ -107,9 +107,16 @@ void Watcher::Observer::observing () const {
 	try {
 		runner.Watch ( Folder );
 		runner.Subscribe ( events, handler );
-		runner.Go ();
 	} catch ( std::exception& E ) {
 		Parent->SendError ( E.what () );
+	}
+	while ( true ) {
+		try {
+			runner.Go ();
+			break;
+		} catch ( std::exception& E ) {
+			Parent->SendError ( E.what () );
+		}
 	}
 }
 #elif _WIN32
