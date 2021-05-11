@@ -48,7 +48,11 @@ bool Regex::select ( tVariant* Params, tVariant* Result ) {
 
 std::wregex Regex::Init ( const std::wstring& Pattern ) {
 	std::wregex object;
-	object.imbue ( std::locale ( "ru_RU.UTF-8" ) );
+	try {
+		object.imbue ( std::locale ( "ru_RU.UTF-8" ) );
+	} catch ( const std::exception& e ) {
+		// Will ignore that issue
+	}
 	object.assign ( Pattern, std::regex_constants::icase );
 	return object;
 }
